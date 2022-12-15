@@ -1,0 +1,29 @@
+enum Handler {
+  Deposit
+  Loan
+}
+
+type Token @entity(immutable: true) {
+  "token address"
+  id: ID!
+  name: String!
+  symbol: String!
+  decimals: BigInt! # uint256
+  "only for ftoken"
+  underlying: Bytes!
+}
+
+type TokenBalance @entity {
+  "token address_account address_handler"
+  id: ID!
+  handler: Handler!
+  amount: BigDecimal!
+  token: Token!
+  user: User!
+}
+
+type User @entity {
+  "account address"
+  id: ID!
+  tokenBalances: [TokenBalance!]! @derivedFrom(field: "user")
+}

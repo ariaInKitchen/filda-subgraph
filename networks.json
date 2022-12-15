@@ -1,0 +1,14 @@
+{
+  "mainnet": {
+    "Comptroller": {
+      "address": "0xE52792E024697A6be770e5d6F1C455550265B2CD",
+      "startBlock": 11008977
+    }
+  },
+  "iotex": {
+    "Comptroller": {
+      "address": "0x55E5F6E48FD4715e1c05b9dAfa5CfD0B387425Ee",
+      "startBlock": 14570598
+    }
+  }
+}
