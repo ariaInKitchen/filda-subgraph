@@ -8,7 +8,18 @@ import {
   RepayBorrow,
   Transfer
 } from "../generated/templates/CToken/CToken"
-import { Token, TokenBalance, User } from "../generated/schema"
+import {
+  Token,
+  TokenBalance,
+  Mint as MintEvent,
+  Redeem as RedeemEvent,
+  Borrow as BorrowEvent,
+  RepayBorrow as RepayEvent,
+  Liquidate,
+  Transfer as TransferEvent,
+  EventLength,
+  User
+} from "../generated/schema"
 import {
   fetchTokenSymbol,
   fetchTokenName,
@@ -17,9 +28,12 @@ import {
   convertTokenToDecimal,
   ADDRESS_ZERO,
   ONE_BI,
+  ZERO_BI,
   ZERO_BD,
   BI_18
 } from './helper'
+
+const EVENT_LENGTH_ID = "event length"
 
 export function handleBorrow(event: Borrow): void {
   let user = User.load(event.params.borrower.toHex())
@@ -37,6 +51,27 @@ export function handleBorrow(event: Borrow): void {
   // if token is not exist, exit
   if (!token) return
 
+  // save borrow entity
+  let eventLength = EventLength.load(EVENT_LENGTH_ID)
+  if (!eventLength) {
+    eventLength = new EventLength(EVENT_LENGTH_ID)
+    eventLength.mint = ZERO_BI
+    eventLength.redeem = ZERO_BI
+    eventLength.borrow = ZERO_BI
+    eventLength.repay = ZERO_BI
+    eventLength.liquidate = ZERO_BI
+    eventLength.transfer = ZERO_BI
+  }
+  let borrowEvent = new BorrowEvent(event.transaction.hash.toHex().concat("_Borrow_").concat(eventLength.borrow.toString()))
+  borrowEvent.amount = convertTokenToDecimal(event.params.borrowAmount, token.decimals)
+  borrowEvent.borrower = user.id
+  borrowEvent.token = token.id
+  borrowEvent.save()
+
+  eventLength.borrow = eventLength.borrow.plus(ONE_BI)
+  eventLength.save()
+
+  // update user token balance
   // token address_account address_handler
   let balanceID = underlying.toHex().concat("_").concat(event.params.borrower.toHex()).concat("_Loan")
   let tokenBalance = TokenBalance.load(balanceID)
@@ -48,18 +83,25 @@ export function handleBorrow(event: Borrow): void {
     tokenBalance.amount = ZERO_BD
   }
 
-  tokenBalance.amount = convertTokenToDecimal(event.params.accountBorrows, token.decimals);
+  tokenBalance.amount = convertTokenToDecimal(event.params.accountBorrows, token.decimals)
   tokenBalance.save()
 }
 
 export function handleLiquidateBorrow(event: LiquidateBorrow): void {
+  let liquidator = User.load(event.params.liquidator.toHex())
+  if (!liquidator) {
+    liquidator = new User(event.params.liquidator.toHex())
+    liquidator.save()
+  }
 
-  // only handle borrower borrow reduce, the collateral amount handled in transfer event
+  let collateral = Token.load(event.params.cTokenCollateral.toHex())
+  // get collateral token failed,exit
+  if (!collateral) return
 
-  let user = User.load(event.params.borrower.toHex())
-  if (!user) {
-    user = new User(event.params.borrower.toHex())
-    user.save()
+  let borrower = User.load(event.params.borrower.toHex())
+  if (!borrower) {
+    borrower = new User(event.params.borrower.toHex())
+    borrower.save()
   }
 
   let underlying = fetchUnderlyingToken(event.address)
@@ -70,12 +112,36 @@ export function handleLiquidateBorrow(event: LiquidateBorrow): void {
   // if token is not exist, exit
   if (!underlyingToken) return
 
+  // save liquidate entity
+  let eventLength = EventLength.load(EVENT_LENGTH_ID)
+  if (!eventLength) {
+    eventLength = new EventLength(EVENT_LENGTH_ID)
+    eventLength.mint = ZERO_BI
+    eventLength.redeem = ZERO_BI
+    eventLength.borrow = ZERO_BI
+    eventLength.repay = ZERO_BI
+    eventLength.liquidate = ZERO_BI
+    eventLength.transfer = ZERO_BI
+  }
+  let liquidate = new Liquidate(event.transaction.hash.toHex().concat("_Liquidate_").concat(eventLength.liquidate.toString()))
+  liquidate.repayAmount = convertTokenToDecimal(event.params.repayAmount, underlyingToken.decimals)
+  liquidate.liquidator = liquidator.id
+  liquidate.borrower = borrower.id
+  liquidate.token = underlyingToken.id
+  liquidate.collateral = collateral.id
+  liquidate.seize = convertTokenToDecimal(event.params.seizeTokens, collateral.decimals)
+  liquidate.save()
+
+  eventLength.liquidate = eventLength.liquidate.plus(ONE_BI)
+  eventLength.save()
+
+  // only handle borrower borrow reduce, the collateral amount handled in transfer event
   let borrowBalanceID = underlying.toHex().concat("_").concat(event.params.borrower.toHex()).concat("_Loan")
   let borrowBalance = TokenBalance.load(borrowBalanceID)
   if (!borrowBalance) {
     borrowBalance = new TokenBalance(borrowBalanceID)
     borrowBalance.handler = "Loan"
-    borrowBalance.user = user.id
+    borrowBalance.user = borrower.id
     borrowBalance.token = underlyingToken.id
     borrowBalance.amount = ZERO_BD
   }
@@ -92,6 +158,31 @@ export function handleMint(event: Mint): void {
 
   let token = Token.load(event.address.toHex())
   if (!token) return
+
+  let underlyingToken = Token.load(token.underlying.toHex())
+  if (!underlyingToken) return
+
+  // save Mint entity
+  let eventLength = EventLength.load(EVENT_LENGTH_ID)
+  if (!eventLength) {
+    eventLength = new EventLength(EVENT_LENGTH_ID)
+    eventLength.mint = ZERO_BI
+    eventLength.redeem = ZERO_BI
+    eventLength.borrow = ZERO_BI
+    eventLength.repay = ZERO_BI
+    eventLength.liquidate = ZERO_BI
+    eventLength.transfer = ZERO_BI
+  }
+
+  let mintEvent = new MintEvent(event.transaction.hash.toHex().concat("_Mint_").concat(eventLength.mint.toString()))
+  mintEvent.amount = convertTokenToDecimal(event.params.mintTokens, token.decimals)
+  mintEvent.underlyingAmount = convertTokenToDecimal(event.params.mintAmount, underlyingToken.decimals)
+  mintEvent.token = token.id
+  mintEvent.minter = user.id
+  mintEvent.save()
+
+  eventLength.mint = eventLength.mint.plus(ONE_BI)
+  eventLength.save()
 
   // token address_account address_handler
   let balanceID = event.address.toHex().concat("_").concat(event.params.minter.toHex()).concat("_Deposit")
@@ -117,6 +208,31 @@ export function handleRedeem(event: Redeem): void {
 
   let token = Token.load(event.address.toHex())
   if (!token) return
+
+  let underlyingToken = Token.load(token.underlying.toHex())
+  if (!underlyingToken) return
+
+  // save Redeem entity
+  let eventLength = EventLength.load(EVENT_LENGTH_ID)
+  if (!eventLength) {
+    eventLength = new EventLength(EVENT_LENGTH_ID)
+    eventLength.mint = ZERO_BI
+    eventLength.redeem = ZERO_BI
+    eventLength.borrow = ZERO_BI
+    eventLength.repay = ZERO_BI
+    eventLength.liquidate = ZERO_BI
+    eventLength.transfer = ZERO_BI
+  }
+
+  let redeemEvent = new RedeemEvent(event.transaction.hash.toHex().concat("_Redeem_").concat(eventLength.redeem.toString()))
+  redeemEvent.amount = convertTokenToDecimal(event.params.redeemTokens, token.decimals)
+  redeemEvent.underlyingAmount = convertTokenToDecimal(event.params.redeemAmount, underlyingToken.decimals)
+  redeemEvent.token = token.id
+  redeemEvent.redeemer = user.id
+  redeemEvent.save()
+
+  eventLength.redeem = eventLength.redeem.plus(ONE_BI)
+  eventLength.save()
 
   // sub user's collateral
   // token address_account address_handler
@@ -147,6 +263,34 @@ export function handleRepayBorrow(event: RepayBorrow): void {
 
   let token = Token.load(underlying.toHex())
   if (!token) return
+
+  // save repay entity
+  let eventLength = EventLength.load(EVENT_LENGTH_ID)
+  if (!eventLength) {
+    eventLength = new EventLength(EVENT_LENGTH_ID)
+    eventLength.mint = ZERO_BI
+    eventLength.redeem = ZERO_BI
+    eventLength.borrow = ZERO_BI
+    eventLength.repay = ZERO_BI
+    eventLength.liquidate = ZERO_BI
+    eventLength.transfer = ZERO_BI
+  }
+
+  let payer = User.load(event.params.payer.toHex())
+  if (!payer) {
+    payer = new User(event.params.payer.toHex())
+    payer.save()
+  }
+
+  let repayEvent = new RepayEvent(event.transaction.hash.toHex().concat("_Repay_").concat(eventLength.repay.toString()))
+  repayEvent.amount = convertTokenToDecimal(event.params.repayAmount, token.decimals)
+  repayEvent.token = token.id
+  repayEvent.borrower = user.id
+  repayEvent.payer = payer.id
+  repayEvent.save()
+
+  eventLength.repay = eventLength.repay.plus(ONE_BI)
+  eventLength.save()
 
   // token address_account address_handler
   let balanceID = underlying.toHex().concat("_").concat(event.params.borrower.toHex()).concat("_Loan")
@@ -210,4 +354,26 @@ export function handleTransfer(event: Transfer): void {
 
   toTokenBalance.amount = toTokenBalance.amount.plus(amount);
   toTokenBalance.save()
+
+  // save repay entity
+  let eventLength = EventLength.load(EVENT_LENGTH_ID)
+  if (!eventLength) {
+    eventLength = new EventLength(EVENT_LENGTH_ID)
+    eventLength.mint = ZERO_BI
+    eventLength.redeem = ZERO_BI
+    eventLength.borrow = ZERO_BI
+    eventLength.repay = ZERO_BI
+    eventLength.liquidate = ZERO_BI
+    eventLength.transfer = ZERO_BI
+  }
+
+  let transferEvent = new TransferEvent(event.transaction.hash.toHex().concat("_Transfer_").concat(eventLength.transfer.toString()))
+  transferEvent.amount = amount
+  transferEvent.token = token.id
+  transferEvent.from = from.id
+  transferEvent.to = to.id
+  transferEvent.save()
+
+  eventLength.transfer = eventLength.transfer.plus(ONE_BI)
+  eventLength.save()
 }

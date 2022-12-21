@@ -22,8 +22,76 @@ type TokenBalance @entity {
   user: User!
 }
 
+type EventLength @entity {
+  id: ID!
+  mint: BigInt!
+  redeem: BigInt!
+  borrow: BigInt!
+  repay: BigInt!
+  liquidate: BigInt!
+  transfer: BigInt!
+}
+
+type Mint @entity {
+  "transaction hash+ '_Mint_' + index "
+  id: ID!
+  amount: BigDecimal!
+  underlyingAmount: BigDecimal!
+  token: Token!
+  minter: User!
+}
+
+type Redeem @entity {
+  "transaction hash+ '_Redeem_' + index "
+  id: ID!
+  amount: BigDecimal!
+  underlyingAmount: BigDecimal!
+  token: Token!
+  redeemer: User!
+}
+
+type Borrow @entity {
+  "transaction hash+ '_Borrow_' + index "
+  id: ID!
+  amount: BigDecimal!
+  token: Token!
+  borrower: User!
+}
+
+type RepayBorrow @entity {
+  "transaction hash+ '_Repay_' + index "
+  id: ID!
+  amount: BigDecimal!
+  token: Token!
+  borrower: User!
+  payer: User!
+}
+
+type Liquidate @entity {
+  "transaction hash+ '_Liquidate_' + index "
+  id: ID!
+  liquidator: User!
+  borrower: User!
+  repayAmount: BigDecimal!
+  token: Token!
+  collateral: Token!
+  seize: BigDecimal!
+}
+
+type Transfer @entity {
+  "transaction hash+ '_Transfer_' + index "
+  id: ID!
+  from: User!
+  to: User!
+  token: Token!
+  amount: BigDecimal!
+}
+
 type User @entity {
   "account address"
   id: ID!
   tokenBalances: [TokenBalance!]! @derivedFrom(field: "user")
+  mints: [Mint!]! @derivedFrom(field: "minter")
+  redeems: [Redeem!]! @derivedFrom(field: "redeemer")
+  borrows: [Borrow!]! @derivedFrom(field: "borrower")
 }
