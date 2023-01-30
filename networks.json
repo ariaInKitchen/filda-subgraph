@@ -16,5 +16,35 @@
       "address": "0xF67EF5E77B350A81DcbA5430Bc8bE876eDa8D591",
       "startBlock": 3969561
     }
+  },
+  "bttc": {
+    "Comptroller": {
+      "address": "0xE52792E024697A6be770e5d6F1C455550265B2CD",
+      "startBlock": 16784326
+    }
+  },
+  "kava": {
+    "Comptroller": {
+      "address": "0xD2CBE89a36df2546eebc71766264e0F306d38196",
+      "startBlock": 3225600
+    }
+  },
+  "polygon": {
+    "Comptroller": {
+      "address": "0xfBE0f3A3d1405257Bd69691406Eafa73f5095723",
+      "startBlock": 21405710
+    }
+  },
+  "heco": {
+    "Comptroller": {
+      "address": "0xb74633f2022452f377403b638167b0a135db096d",
+      "startBlock": 836494
+    }
+  },
+  "kcc": {
+    "Comptroller": {
+      "address": "0xfbAFd34A4644DC4f7c5b2Ae150279162Eb2B0dF6",
+      "startBlock": 10906848
+    }
   }
 }
