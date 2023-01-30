@@ -29,7 +29,7 @@ export function handleMarketListed(event: MarketListed): void {
   ctoken.symbol = fetchTokenSymbol(event.params.cToken)
   let decimals = fetchTokenDecimals(event.params.cToken)
   if (decimals === null) {
-    return;
+    decimals = BigInt.fromI32(18)
   }
   ctoken.decimals = decimals
   let underlying = fetchUnderlyingToken(event.params.cToken)
@@ -54,7 +54,7 @@ export function handleMarketListed(event: MarketListed): void {
     token.symbol = fetchTokenSymbol(underlying)
     decimals = fetchTokenDecimals(underlying)
     if (decimals === null) {
-      return;
+      decimals = BigInt.fromI32(18)
     }
     token.decimals = decimals
   }

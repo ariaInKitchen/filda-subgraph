@@ -10,5 +10,11 @@
       "address": "0x55E5F6E48FD4715e1c05b9dAfa5CfD0B387425Ee",
       "startBlock": 14570598
     }
+  },
+  "arbitrum": {
+    "Comptroller": {
+      "address": "0xF67EF5E77B350A81DcbA5430Bc8bE876eDa8D591",
+      "startBlock": 3969561
+    }
   }
 }
