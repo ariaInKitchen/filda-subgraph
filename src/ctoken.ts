@@ -63,7 +63,9 @@ export function handleBorrow(event: Borrow): void {
     eventLength.transfer = ZERO_BI
   }
   let borrowEvent = new BorrowEvent(event.transaction.hash.toHex().concat("_Borrow_").concat(eventLength.borrow.toString()))
-  borrowEvent.amount = convertTokenToDecimal(event.params.borrowAmount, token.decimals)
+  borrowEvent.borrowAmount = convertTokenToDecimal(event.params.borrowAmount, token.decimals)
+  borrowEvent.accountBorrows = convertTokenToDecimal(event.params.accountBorrows, token.decimals)
+  borrowEvent.totalBorrows = convertTokenToDecimal(event.params.totalBorrows, token.decimals)
   borrowEvent.borrower = user.id
   borrowEvent.token = token.id
   borrowEvent.timestamp = event.block.timestamp
@@ -291,7 +293,9 @@ export function handleRepayBorrow(event: RepayBorrow): void {
   }
 
   let repayEvent = new RepayEvent(event.transaction.hash.toHex().concat("_Repay_").concat(eventLength.repay.toString()))
-  repayEvent.amount = convertTokenToDecimal(event.params.repayAmount, token.decimals)
+  repayEvent.repayAmount = convertTokenToDecimal(event.params.repayAmount, token.decimals)
+  repayEvent.accountBorrows = convertTokenToDecimal(event.params.accountBorrows, token.decimals)
+  repayEvent.totalBorrows = convertTokenToDecimal(event.params.totalBorrows, token.decimals)
   repayEvent.token = token.id
   repayEvent.borrower = user.id
   repayEvent.payer = payer.id

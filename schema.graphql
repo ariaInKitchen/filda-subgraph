@@ -57,7 +57,9 @@ type Redeem @entity {
 type Borrow @entity {
   "transaction hash+ '_Borrow_' + index "
   id: ID!
-  amount: BigDecimal!
+  borrowAmount: BigDecimal!
+  accountBorrows: BigDecimal!
+  totalBorrows: BigDecimal!
   token: Token!
   borrower: User!
   timestamp: BigInt!
@@ -67,7 +69,9 @@ type Borrow @entity {
 type RepayBorrow @entity {
   "transaction hash+ '_Repay_' + index "
   id: ID!
-  amount: BigDecimal!
+  repayAmount: BigDecimal!
+  accountBorrows: BigDecimal!
+  totalBorrows: BigDecimal!
   token: Token!
   borrower: User!
   payer: User!
